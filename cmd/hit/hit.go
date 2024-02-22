@@ -4,9 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/BedIsTooFarAway/hit/hit"
 )
 
 const (
@@ -39,7 +42,6 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		c: runtime.NumCPU(),
 		t: d,
 		m: "GET",
-		//H: []string{"sss"},
 	}
 
 	if err = f.parse(s, args); err != nil {
@@ -48,6 +50,28 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	fmt.Fprintln(out, banner())
 	fmt.Fprintf(out, "Headers: %s\n", (*headers)(&f.H))
 	fmt.Fprintf(out, "Making %d %s requests to %s with a concurrency level of %d (Timeout=%s).\n", f.n, f.m, f.url, f.c, f.t)
+
+	var sum hit.Result
+	sum.Merge(&hit.Result{
+		Bytes:    1000,
+		Status:   http.StatusOK, // 200
+		Duration: time.Second,
+	})
+
+	sum.Merge(&hit.Result{
+		Bytes:    1000,
+		Status:   http.StatusOK, // 200
+		Duration: time.Second,
+	})
+
+	sum.Merge(&hit.Result{
+		Status:   http.StatusTeapot, // 200
+		Duration: 2 * time.Second,
+	})
+
+	sum.Finalize(2 * time.Second)
+	//sum.Fprint(out)
+	fmt.Printf("Sum is %T:\n%s", sum, sum)
 
 	return nil
 }

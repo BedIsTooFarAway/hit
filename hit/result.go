@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -21,10 +22,18 @@ type Result struct {
 	Error    error         // Not nil if request failed
 }
 
+type ResultProt struct {
+	RPS float64 // Requests Per Second
+}
+
+func (r ResultProt) String() string {
+	return fmt.Sprintf("Requests per second: %f", r.RPS)
+}
+
 // Merge this Result with another
 func (r *Result) Merge(o *Result) {
 
-	o.Requests++
+	r.Requests++
 	r.Bytes += o.Bytes
 	switch {
 	case o.Error != nil:
@@ -39,32 +48,44 @@ func (r *Result) Merge(o *Result) {
 
 }
 
+// Wrap up and aggregate
 func (r *Result) Finalize(total time.Duration) *Result {
 	r.Duration = total
 	r.RPS = float64(r.Requests / int(total.Seconds()))
-	r.Success = r.success()
 	return r
 }
 
-func (r *Result) Fprintf(out io.Writer) {
+func (r *Result) Fprint(out io.Writer) {
 	p := func(format string, args ...any) {
 		fmt.Fprintf(out, format, args...)
 	}
 
 	p("\nSummary:\n")
-	p("\tSuccess	: %.0f%%\n", r.Success)
-	p("\tRPC	: %.1f\n", r.RPS)
-	p("\tRequests	: %d\n", r.Requests)
-	p("\tErrors	: %d\n", r.Errors)
-	p("\tBytes	: %d\n", r.Bytes)
-	p("\tDuration	: %d\n", round(r.Duration))
+	p("\tSuccess\t\t: %.0f%%\n", r.success())
+	p("\tRPS\t\t: %.1f\n", r.RPS)
+	p("\tRequests\t: %d\n", r.Requests)
+	p("\tErrors\t\t: %d\n", r.Errors)
+	p("\tBytes\t\t: %d\n", r.Bytes)
+	p("\tDuration\t: %s\n", round(r.Duration))
 	if r.Requests > 1 {
-		p("\tFastest	: %d", r.Fastest)
-		p("\tSlowest	: %d", r.Slowest)
+		p("\tFastest\t\t: %s\n", r.Fastest)
+		p("\tSlowest\t\t: %s\n", r.Slowest)
 	}
 }
 
-func max(a time.Duration, b time.Duration) time.Duration {
+func (r Result) String() string {
+	var s strings.Builder
+	r.Fprint(&s)
+	return s.String()
+}
+
+func (r *Result) success() float64 {
+	req, err := float64(r.Requests), float64(r.Errors)
+	return (req - err) * 100 / req
+}
+
+// Helpers
+func min(a time.Duration, b time.Duration) time.Duration {
 	// 0 = uninitialized
 	if a == 0 {
 		return b
@@ -80,20 +101,22 @@ func max(a time.Duration, b time.Duration) time.Duration {
 
 }
 
-func min(a time.Duration, b time.Duration) time.Duration {
-	if max(a, b) == a {
+func max(a time.Duration, b time.Duration) time.Duration {
+	if a == 0 {
 		return b
-	} else {
+	}
+	if b == 0 {
 		return a
+	}
+
+	if a < b {
+		return a
+	} else {
+		return b
 	}
 }
 
 func round(t time.Duration) time.Duration {
 	return t.Round(time.Microsecond)
 
-}
-
-func (r *Result) success() float64 {
-	req, err := float64(r.Requests), float64(r.Errors)
-	return (req - err) * 100 / req
 }

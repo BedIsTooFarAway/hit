@@ -60,8 +60,6 @@ func (h *headers) Set(s string) error {
 }
 
 func (h *headers) String() string {
-	//fmt.Println("headers to string")
-
 	var result []string
 	for _, item := range *h {
 		result = append(result, fmt.Sprintf("%q", item))
@@ -86,6 +84,7 @@ func (n *number) Set(s string) error {
 }
 
 func (n *number) String() string {
+	fmt.Println("number to string")
 	return strconv.Itoa(int(*n))
 }
 

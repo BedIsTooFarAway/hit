@@ -7,6 +7,8 @@
 *.dll
 *.so
 *.dylib
+
+# Temporary files
 *.swp
 
 # Test binary, built with `go test -c`
