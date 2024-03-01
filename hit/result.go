@@ -51,7 +51,7 @@ func (r *Result) Merge(o *Result) {
 // Wrap up and aggregate
 func (r *Result) Finalize(total time.Duration) *Result {
 	r.Duration = total
-	r.RPS = float64(r.Requests / int(total.Seconds()))
+	r.RPS = float64(r.Requests * 1000 / int(total.Milliseconds()))
 	return r
 }
 
