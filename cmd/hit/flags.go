@@ -28,6 +28,7 @@ type flags struct {
 	t    time.Duration
 	m    string
 	H    []string
+	rps  int
 }
 
 // number is a natural number.
@@ -84,7 +85,6 @@ func (n *number) Set(s string) error {
 }
 
 func (n *number) String() string {
-	fmt.Println("number to string")
 	return strconv.Itoa(int(*n))
 }
 
@@ -114,6 +114,7 @@ func (f *flags) parse(s *flag.FlagSet, args []string) error {
 	s.DurationVar(&f.t, "t", f.t, "Timeout")
 	s.Var(toMethod(&f.m), "m", "Method")
 	s.Var(toHeaders(&f.H), "H", "Headers. Multiple-entry parameter")
+	s.Var(toNumber(&f.rps), "r", "Throttle requests per second")
 	if err := s.Parse(args); err != nil {
 		return err
 	}

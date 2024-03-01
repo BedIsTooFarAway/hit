@@ -27,6 +27,7 @@ func banner() string { return bannerText[1:] }
 func main() {
 
 	if err := run(flag.CommandLine, os.Args[1:], os.Stdout); err != nil {
+		fmt.Fprint(os.Stderr, "error occured", err)
 		os.Exit(1)
 	}
 }
@@ -50,28 +51,21 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	fmt.Fprintln(out, banner())
 	fmt.Fprintf(out, "Headers: %s\n", (*headers)(&f.H))
 	fmt.Fprintf(out, "Making %d %s requests to %s with a concurrency level of %d (Timeout=%s).\n", f.n, f.m, f.url, f.c, f.t)
+	if f.rps > 0 {
+		fmt.Fprintf(out, "(RPS: %d)\n", f.rps)
+	}
 
-	var sum hit.Result
-	sum.Merge(&hit.Result{
-		Bytes:    1000,
-		Status:   http.StatusOK, // 200
-		Duration: time.Second,
-	})
+	request, err := http.NewRequest(http.MethodGet, f.url, http.NoBody)
+	if err != nil {
+		return err
+	}
+	c := hit.Client{
+		RPS: f.rps,
+		C:   f.c,
+	}
+	sum := c.Do(request, f.n)
 
-	sum.Merge(&hit.Result{
-		Bytes:    1000,
-		Status:   http.StatusOK, // 200
-		Duration: time.Second,
-	})
-
-	sum.Merge(&hit.Result{
-		Status:   http.StatusTeapot, // 200
-		Duration: 2 * time.Second,
-	})
-
-	sum.Finalize(2 * time.Second)
-	//sum.Fprint(out)
-	fmt.Printf("Sum is %T:\n%s", sum, sum)
+	sum.Fprint(out)
 
 	return nil
 }
